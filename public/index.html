@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Community Rescue Portal</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f7f6;
+      padding: 20px;
+    }
+
+    .box {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .match-btn {
+      background: #a142f4;
+      margin-top: 10px;
+    }
+
+    .card {
+      background: white;
+      border-left: 5px solid #a142f4;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .reason {
+      background: #f3e8ff;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 0.9em;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div style="max-width: 600px; margin: auto;">
+    <h1>🆘 Community Help</h1>
+
+    <div class="box">
+      <h3>Post a Need</h3>
+      <input id="n1" placeholder="Need (e.g. Medicine)">
+      <input id="n2" placeholder="Location">
+      <select id="n3">
+        <option>High</option>
+        <option>Medium</option>
+        <option>Low</option>
+      </select>
+      <textarea id="n4" placeholder="Description"></textarea>
+      <button onclick="send('/add-need', 'n1','n2','n3','n4')">Submit Need</button>
+    </div>
+
+    <div class="box">
+      <h3>Volunteer Registration</h3>
+      <input id="v1" placeholder="Name">
+      <input id="v2" placeholder="Location">
+      <input id="v3" placeholder="Skills (e.g. Driving)">
+      <input id="v4" placeholder="Contact Info">
+      <button onclick="send('/register-volunteer', 'v1','v2','v3','v4')">Register</button>
+    </div>
+
+    <button class="match-btn" onclick="getMatches()">🧠 Find AI Matches</button>
+    <div id="results"></div>
+  </div>
+
+  <script>
+    async function send(path, ...ids) {
+      const vals = ids.map(id => document.getElementById(id).value);
+      const body = path.includes('need')
+        ? { need_type: vals[0], location: vals[1], priority: vals[2], description: vals[3] }
+        : { name: vals[0], location: vals[1], skills: vals[2], contact: vals[3] };
+
+      const res = await fetch(`http://localhost:3000${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      alert(data.message || "Saved!");
+      ids.forEach(id => document.getElementById(id).value = "");
+    }
+
+    async function getMatches() {
+      const div = document.getElementById('results');
+      div.innerHTML = "<h3>AI is processing... 🧠</h3>";
+      try {
+        const res = await fetch('http://localhost:3000/match');
+        const data = await res.json();
+        if (data.message) { div.innerHTML = `<p>${data.message}</p>`; return; }
+        div.innerHTML = "";
+        data.forEach(m => {
+          div.innerHTML += `
+                    <div class="card">
+                        <strong>🆘 Need:</strong> ${m.need}<br>
+                        <strong>👤 Volunteer:</strong> ${m.volName} (${m.volContact})
+                        <div class="reason"><strong>AI Logic:</strong> ${m.reason}</div>
+                    </div>`;
+        });
+      } catch (e) { div.innerHTML = "<p style='color:red'>AI Busy. Try again!</p>"; }
+    }
+  </script>
+</body>
+
+</html>
